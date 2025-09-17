@@ -2,8 +2,6 @@ import random
 import csv
 from datetime import datetime, timedelta
 import os
-import faker
-from faker.providers import person, phone_number, ssn  # for generating personal data
 from typing import List, Dict
 
 bank_names = ['GAZPROMBANK','MTS BANK','SBERBANK OF RUSSIA','TINKOFF BANK','VTB BANK']
@@ -18,12 +16,6 @@ def read_from_csv_file(file_path: str, delimiter: str = ';') -> List[List[str]]:
             if row:
                 data.append(row)
     return data
-
-
-
-import random
-import faker
-from typing import List
 
 def parse_personal_data_file(file_path: str) -> Dict[str, List[tuple]]:
     """
@@ -168,21 +160,56 @@ def choose_symptoms(specialist: str, symptoms_dict: Dict[str, List[str]]) -> Lis
     return random.sample(symptoms, count)
 
 def generate_random_datetime(min_time="09:00", max_time="21:00") -> str:
+    """
+    Генерация случайной даты визита:
+    - В пределах года 2024
+    - В пределах рабочего времени
+    - Минуты кратны 5
+    """
     start_date = datetime(2024, 1, 1)
     end_date = datetime(2024, 12, 31)
     delta = end_date - start_date
     random_days = random.randint(0, delta.days)
     random_date = start_date + timedelta(days=random_days)
 
-    min_t = datetime.strptime(min_time, "%H:%M").time()
-    max_t = datetime.strptime(max_time, "%H:%M").time()
-    min_sec = min_t.hour*3600 + min_t.minute*60
-    max_sec = max_t.hour*3600 + max_t.minute*60
-    random_sec = random.randint(min_sec, max_sec)
-    random_time = (datetime.min + timedelta(seconds=random_sec)).time()
+    min_h, min_m = map(int, min_time.split(':'))
+    max_h, max_m = map(int, max_time.split(':'))
 
-    generated_datetime = datetime.combine(random_date, random_time)
+    hour = random.randint(min_h, max_h)
+    minute = random.choice(range(0, 60, 5))  # числа кратны 5 минутам
+
+    generated_datetime = datetime.combine(random_date, datetime.min.time()).replace(hour=hour, minute=minute)
     return generated_datetime.strftime("%Y-%m-%dT%H:%M")
+
+
+def generate_analysis_datetime(visit_dt: str, min_hours: int = 24, max_hours: int = 72,
+                               min_work_time: str = "09:00", max_work_time: str = "12:00") -> str:
+    """
+    Генерация даты анализа:
+    - Через 24–72 часа после визита
+    - Минуты кратны 5
+    - В первой половине дня
+    """
+    visit_dt_obj = datetime.strptime(visit_dt, "%Y-%m-%dT%H:%M")
+    delta_hours = random.randint(min_hours, max_hours)
+    analysis_dt = visit_dt_obj + timedelta(hours=delta_hours)
+
+    # Рабочие часы
+    min_h, min_m = map(int, min_work_time.split(':'))
+    max_h, max_m = map(int, max_work_time.split(':'))
+
+    # Если анализ выпал вне рабочего времени, корректируем
+    if analysis_dt.hour < min_h or analysis_dt.hour > max_h:
+        analysis_dt = analysis_dt.replace(
+            hour=random.randint(min_h, max_h),
+            minute=random.choice(range(0, 60, 5))
+        )
+    else:
+        # Минуты кратны 5
+        analysis_dt = analysis_dt.replace(minute=(analysis_dt.minute // 5) * 5)
+
+    return analysis_dt.strftime("%Y-%m-%dT%H:%M")
+
 
 
 def generate_analyses(specialist: str, analyses_with_prices_dict: Dict[str, List[tuple]]) -> List[str]:
@@ -304,7 +331,7 @@ def generate_dataset(
         symptoms = choose_symptoms(specialist, symptoms_dict)
 
         analyses = generate_analyses(specialist, analyses_with_prices_dict)
-        analysis_dt = generate_random_datetime()
+        analysis_dt = generate_analysis_datetime(visit_dt)
         cost = calculate_cost_based_on_analyses(analyses, analyses_with_prices_dict, specialist)
 
         pay_sys = random.choice(painment_system_names)
