@@ -246,7 +246,16 @@ def calculate_cost_based_on_analyses(analyses: List[str], analyses_with_prices_d
     
     return round(total_cost, 2)
 
-def generate_one_card_2(pay_system, bank):
+def generate_one_card_2(bank_weights: dict, pay_system_weights: dict) -> str:
+    """
+    Генерация карты с учетом весов банков и платежных систем.
+    """
+    banks = list(bank_weights.keys())
+    pay_systems = list(pay_system_weights.keys())
+
+    bank = random.choices(banks, weights=list(bank_weights.values()))[0]
+    pay_system = random.choices(pay_systems, weights=list(pay_system_weights.values()))[0]
+
     card_format = '{fig12} {fig3} {fig4}'
     if pay_system == 'MIR':
         if bank == 'SBERBANK OF RUSSIA':
@@ -275,11 +284,14 @@ def generate_one_card_2(pay_system, bank):
             figures = '4986 29'
         else:
             figures = '4306 43'  # GAZPROMBANK
-    argz = {'fig12': figures + str(random.randint(10, 99)),
-            'fig3': str(random.randint(1000, 9999)),
-            'fig4': str(random.randint(1000, 9999))}
-    return card_format.format(**argz)
 
+    argz = {
+        'fig12': figures + str(random.randint(10, 99)),
+        'fig3': str(random.randint(1000, 9999)),
+        'fig4': str(random.randint(1000, 9999))
+    }
+
+    return card_format.format(**argz)
 
 def generate_one_card(
         personal: List[str], specialist: str, symptoms: List[str], visit_date: str,
@@ -321,8 +333,16 @@ def generate_dataset(
     specialists_list: List[str],
     symptoms_dict: Dict[str, List[str]],
     analyses_with_prices_dict: Dict[str, List[tuple]],
-    personal_data: List[List[str]]
+    personal_data: List[List[str]],
+    bank_weights: dict = None,
+    pay_system_weights: dict = None
 ) -> List[List[str]]:
+    # Если веса не заданы, создаем равные вероятности
+    if bank_weights is None:
+        bank_weights = {b: 1 for b in bank_names}
+    if pay_system_weights is None:
+        pay_system_weights = {ps: 1 for ps in painment_system_names}
+
     dataset = []
     for _ in range(n):
         person = random.choice(personal_data)
@@ -334,16 +354,14 @@ def generate_dataset(
         analysis_dt = generate_analysis_datetime(visit_dt)
         cost = calculate_cost_based_on_analyses(analyses, analyses_with_prices_dict, specialist)
 
-        pay_sys = random.choice(painment_system_names)
-        bank = random.choice(bank_names)
-        card = generate_one_card_2(pay_sys, bank)
+        # Генерация карты с учетом весов
+        card = generate_one_card_2(bank_weights, pay_system_weights)
 
         card_data = generate_one_card(person, specialist, symptoms, visit_dt, analyses, analysis_dt, cost, card)
         output_row = generate_one_output(card_data)
         dataset.append(output_row)
+
     return dataset
-
-
 
 
 def write_into_csv_file(data: List[List[str]], path: str = 'output/medical_dataset.csv'):
@@ -399,7 +417,21 @@ if __name__ == "__main__":
     names_dict = parse_personal_data_file("data/personal_data_name.csv")
     surnames_dict = parse_personal_data_file("data/personal_data_surname.csv")
     patronymics_dict = parse_personal_data_file("data/personal_data_patronymic.csv")
+    
+    bank_weights = {
+        'GAZPROMBANK': 5,
+        'MTS BANK': 1,
+        'SBERBANK OF RUSSIA': 1,
+        'TINKOFF BANK': 2,
+        'VTB BANK': 4
+    }
 
+    pay_system_weights = {
+        'MIR': 3,
+        'VISA': 5,
+        'MASTERCARD': 2
+    }
+        
     # Генерация персональных данных (пример)
     personal_data = generate_personal_data(1000, names_dict, surnames_dict, patronymics_dict)
 
@@ -409,8 +441,11 @@ if __name__ == "__main__":
         specialists_list,
         symptoms_dict,
         analyses_with_prices_dict,
-        personal_data
+        personal_data,
+        bank_weights=bank_weights,
+        pay_system_weights=pay_system_weights
     )
+
 
     # Запись в CSV
     write_into_csv_file(dataset)
