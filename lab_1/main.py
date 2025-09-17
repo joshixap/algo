@@ -21,27 +21,53 @@ def read_from_csv_file(file_path: str, delimiter: str = ';') -> List[List[str]]:
 
 
 
+import random
+import faker
+from typing import List
+
 def generate_personal_data(amount=1000) -> List[List[str]]:
     """
     Использует faker для генерации ФИО, паспортных данных и СНИЛС на русском языке.
     Возвращает список списков: [ ФИО ; паспорт ; СНИЛС ]
     """
+    # Коды регионов основных фабрик Госзнака
+    region_codes = [
+        40,  # Москва (исторический)
+        45,  # Москва
+        50,  # Московская область
+        77,  # Москва (современный)
+        78,  # Санкт-Петербург
+        59,  # Пермский край
+        47,  # Ленинградская область
+        66   # Свердловская область
+    ]
+    
+    # Годы выпуска бланков (2007-2025)
+    years = list(range(2007, 2026))
+    
     fake = faker.Faker('ru_RU')
-    fake.add_provider(person)
-    fake.add_provider(phone_number)
-    fake.add_provider(ssn)
-
     personal_data = []
+    
     for _ in range(amount):
         fio = fake.name()
-        passport_series = random.randint(10_00, 99_99)
-        passport_number = random.randint(10_000_000, 99_999_999)
+        
+        # Генерация серии паспорта: код региона + год выпуска
+        region_code = random.choice(region_codes)
+        year = random.choice(years)
+        passport_series = f"{region_code:02d}{year % 100:02d}"  # Формат: 4023
+        
+        # Генерация номера паспорта (6 цифр)
+        passport_number = f"{random.randint(100000, 999999):06d}"
+        
         passport = f"{passport_series} {passport_number}"
-        # СНИЛС - формат XXX XXX XXX XX
+        
+        # СНИЛС - формат XXXXXXXXX XX
         snils_numbers = [random.randint(0, 9) for _ in range(9)]
         snils_control = [random.randint(0, 9) for _ in range(2)]
-        snils = f"{snils_numbers[0]}{snils_numbers[1]}{snils_numbers[2]} {snils_numbers[3]}{snils_numbers[4]}{snils_numbers[5]} {snils_numbers[6]}{snils_numbers[7]}{snils_numbers[8]} {snils_control[0]}{snils_control[1]}"
+        snils = f"{snils_numbers[0]}{snils_numbers[1]}{snils_numbers[2]}{snils_numbers[3]}{snils_numbers[4]}{snils_numbers[5]}{snils_numbers[6]}{snils_numbers[7]}{snils_numbers[8]} {snils_control[0]}{snils_control[1]}"
+        
         personal_data.append([fio, passport, snils])
+    
     return personal_data
 
 
