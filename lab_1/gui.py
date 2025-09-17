@@ -163,11 +163,11 @@ combo_bank5 = Combobox(frame_bank_combos, values=list(range(0,101)), width=10)
 for c in [combo_bank1, combo_bank2, combo_bank3, combo_bank4, combo_bank5]:
     c.pack(side='left', padx=5)
 
-combo_bank1.set("5")
-combo_bank2.set("1")
-combo_bank3.set("1")
-combo_bank4.set("2")
-combo_bank5.set("4")
+combo_bank1.set("20")
+combo_bank2.set("20")
+combo_bank3.set("20")
+combo_bank4.set("20")
+combo_bank5.set("20")
 
 # Веса платёжных систем
 tk.Label(window, text="Веса платёжных систем (%):", bg=label_bg, fg=label_fg).pack(pady=(10, 0))
@@ -191,9 +191,9 @@ combo_ps3 = Combobox(frame_ps_combos, values=list(range(0,101)), width=10)
 for c in [combo_ps1, combo_ps2, combo_ps3]:
     c.pack(side='left', padx=5)
 
-combo_ps1.set("3")
-combo_ps2.set("5")
-combo_ps3.set("2")
+combo_ps1.set("33")
+combo_ps2.set("33")
+combo_ps3.set("33")
 
 # Прогрессбар
 progress_frame = tk.Frame(window, bg=label_bg)

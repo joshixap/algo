@@ -162,12 +162,12 @@ def choose_symptoms(specialist: str, symptoms_dict: Dict[str, List[str]]) -> Lis
 def generate_random_datetime(min_time="09:00", max_time="21:00") -> str:
     """
     Генерация случайной даты визита:
-    - В пределах года 2024
+    - В пределах 2025 года
     - В пределах рабочего времени
     - Минуты кратны 5
     """
-    start_date = datetime(2024, 1, 1)
-    end_date = datetime(2024, 12, 31)
+    start_date = datetime(2025, 1, 1)
+    end_date = datetime(2025, 12, 31)
     delta = end_date - start_date
     random_days = random.randint(0, delta.days)
     random_date = start_date + timedelta(days=random_days)
