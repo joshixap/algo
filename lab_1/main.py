@@ -304,7 +304,7 @@ if __name__ == "__main__":
     med_specialities = read_from_csv_file('data/medical_specialities.csv')
     
     # Разбор спец. в список строк для генерации
-    specialists_list = [row[0].strip() for row in med_specialities]
+    specialists_list = [row[1].strip() for row in med_specialities]
 
     # Загрузить тесты и цены
     med_tests_prices = read_from_csv_file('data/medical_tests_and_prices.csv')
@@ -313,7 +313,7 @@ if __name__ == "__main__":
     analyses_with_prices_dict = {}
 
     for spec_row, tests_row in zip(med_specialities, med_tests_prices):
-        spec = spec_row[0].strip()
+        spec = spec_row[1].strip()
         
         tests_with_prices = [item.strip() for item in tests_row if item.strip()]
         
@@ -331,9 +331,9 @@ if __name__ == "__main__":
     
     symptoms_dict = {}
     for row in med_specialities:
-        if len(row) >= 2:  # Проверяем, что есть симптомы
-            spec = row[0].strip()
-            symptoms = [s.strip() for s in row[1].split(',')]
+        if len(row) >= 3:  # Проверяем, что есть симптомы
+            spec = row[1].strip()
+            symptoms = [s.strip() for s in row[2].split(',')]
             symptoms_dict[spec] = symptoms
         else:
             print(f"Предупреждение: нет симптомов для специальности {row[0]}")
