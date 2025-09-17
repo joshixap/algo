@@ -25,6 +25,61 @@ import random
 import faker
 from typing import List
 
+def parse_personal_data_file(file_path: str) -> Dict[str, List[tuple]]:
+    """
+    Читает CSV файл формата: пол;значение;вероятность
+    Возвращает словарь: { "M": [(значение, вероятность), ...], "F": [...] }
+    """
+    data = {"M": [], "F": []}
+    rows = read_from_csv_file(file_path)
+    for row in rows:
+        if len(row) >= 3:
+            gender = row[0].strip()
+            value = row[1].strip()
+            try:
+                prob = float(row[2].strip())
+            except ValueError:
+                prob = 0.0
+            if gender in data:
+                data[gender].append((value, prob))
+    return data
+
+
+def weighted_choice(data: List[tuple]) -> str:
+    """
+    Выбирает элемент из списка (значение, вероятность) с учетом вероятностей
+    """
+    if not data:
+        return ""
+    values = [item[0] for item in data]
+    weights = [item[1] for item in data]
+    return random.choices(values, weights=weights, k=1)[0]
+
+
+def generate_fio(names_dict, surnames_dict, patronymics_dict) -> (str, str):
+    """
+    Генерирует ФИО с учетом пола и вероятностей
+    Возвращает кортеж: (ФИО, gender)
+    """
+    # Сначала выбираем имя
+    all_names = names_dict["M"] + names_dict["F"]
+    chosen_name = weighted_choice(all_names)
+
+    # Определяем пол по имени
+    gender = None
+    for g in ("M", "F"):
+        if any(chosen_name == val for val, _ in names_dict[g]):
+            gender = g
+            break
+
+    # Подбираем фамилию и отчество по полу
+    surname = weighted_choice(surnames_dict.get(gender, []))
+    patronymic = weighted_choice(patronymics_dict.get(gender, []))
+
+    fio = f"{surname} {chosen_name} {patronymic}"
+    return fio, gender
+
+
 def calculate_snils_control_number(digits: list) -> str:
     """
     Вычисляет контрольное число для СНИЛС по официальному алгоритму.
@@ -54,9 +109,9 @@ def calculate_snils_control_number(digits: list) -> str:
     
     return f"{control_number:02d}"
 
-def generate_personal_data(amount=1000) -> List[List[str]]:
+def generate_personal_data(amount, names_dict, surnames_dict, patronymics_dict) -> List[List[str]]:
     """
-    Использует faker для генерации ФИО, паспортных данных и СНИЛС на русском языке.
+    Генерация ФИО, паспорта и СНИЛС с учетом пола и вероятностей появления имен, фамилий и отчеств.
     Возвращает список списков: [ ФИО ; паспорт ; СНИЛС ]
     """
     # Коды регионов основных фабрик Госзнака
@@ -74,11 +129,11 @@ def generate_personal_data(amount=1000) -> List[List[str]]:
     # Годы выпуска бланков (2007-2025)
     years = list(range(2007, 2026))
     
-    fake = faker.Faker('ru_RU')
     personal_data = []
     
     for _ in range(amount):
-        fio = fake.name()
+        # Генерация ФИО по полу и вероятностям
+        fio, gender = generate_fio(names_dict, surnames_dict, patronymics_dict)
         
         # Генерация серии паспорта: код региона + год выпуска
         region_code = random.choice(region_codes)
@@ -87,24 +142,17 @@ def generate_personal_data(amount=1000) -> List[List[str]]:
         
         # Генерация номера паспорта (6 цифр)
         passport_number = f"{random.randint(100000, 999999):06d}"
-        
         passport = f"{passport_series} {passport_number}"
         
         # Правильная генерация СНИЛС
-        # 1. Генерируем 9 случайных цифр основной части
         main_digits = [random.randint(0, 9) for _ in range(9)]
-        
-        # 2. Вычисляем контрольное число по официальному алгоритму
         control_number = calculate_snils_control_number(main_digits)
-        
-        # 3. Форматируем СНИЛС: XXXXXXXXX XX (9 цифр + пробел + 2 контрольные цифры)
         snils_main = ''.join(str(digit) for digit in main_digits)
         snils = f"{snils_main} {control_number}"
         
         personal_data.append([fio, passport, snils])
     
     return personal_data
-
 
 def generate_random_specialist(specialists_list: List[str]) -> str:
     # Считается, что первая специальность - самая популярная
@@ -118,19 +166,6 @@ def choose_symptoms(specialist: str, symptoms_dict: Dict[str, List[str]]) -> Lis
     symptoms = symptoms_dict.get(specialist, [])
     count = random.randint(1, max(1, min(7, len(symptoms))))
     return random.sample(symptoms, count)
-
-
-def check_realistic_and_seasonal_symptoms(
-        symptoms: List[str], visit_date: datetime, seasonality_index: Dict[str, List[float]]
-    ) -> List[str]:
-    month = visit_date.month
-    filtered_symptoms = []
-    for symptom in symptoms:
-        weights = seasonality_index.get(symptom, [1.0]*12)
-        if random.random() < weights[month - 1]:
-            filtered_symptoms.append(symptom)
-    return filtered_symptoms if filtered_symptoms else symptoms
-
 
 def generate_random_datetime(min_time="09:00", max_time="21:00") -> str:
     start_date = datetime(2024, 1, 1)
@@ -259,7 +294,6 @@ def generate_dataset(
     specialists_list: List[str],
     symptoms_dict: Dict[str, List[str]],
     analyses_with_prices_dict: Dict[str, List[tuple]],
-    seasonality_index: Dict[str, List[float]],
     personal_data: List[List[str]]
 ) -> List[List[str]]:
     dataset = []
@@ -269,11 +303,6 @@ def generate_dataset(
         visit_dt = generate_random_datetime()
         symptoms = choose_symptoms(specialist, symptoms_dict)
 
-        symptoms_checked = check_realistic_and_seasonal_symptoms(
-            symptoms,
-            datetime.strptime(visit_dt, "%Y-%m-%dT%H:%M"),
-            seasonality_index
-        )
         analyses = generate_analyses(specialist, analyses_with_prices_dict)
         analysis_dt = generate_random_datetime()
         cost = calculate_cost_based_on_analyses(analyses, analyses_with_prices_dict, specialist)
@@ -282,10 +311,11 @@ def generate_dataset(
         bank = random.choice(bank_names)
         card = generate_one_card_2(pay_sys, bank)
 
-        card_data = generate_one_card(person, specialist, symptoms_checked, visit_dt, analyses, analysis_dt, cost, card)
+        card_data = generate_one_card(person, specialist, symptoms, visit_dt, analyses, analysis_dt, cost, card)
         output_row = generate_one_output(card_data)
         dataset.append(output_row)
     return dataset
+
 
 
 
@@ -338,12 +368,13 @@ if __name__ == "__main__":
         else:
             print(f"Предупреждение: нет симптомов для специальности {row[0]}")
 
-
-    # Сезонность (простой пример, коэффициенты для каждого месяца)
-    seasonality_index = {symptom: [1.0]*12 for symptom in ['симптом1', 'симптом2', 'симптом3']}  # простая заглушка
+    # Загружаем словари для ФИО
+    names_dict = parse_personal_data_file("data/personal_data_name.csv")
+    surnames_dict = parse_personal_data_file("data/personal_data_surname.csv")
+    patronymics_dict = parse_personal_data_file("data/personal_data_patronymic.csv")
 
     # Генерация персональных данных (пример)
-    personal_data = generate_personal_data(1000)
+    personal_data = generate_personal_data(1000, names_dict, surnames_dict, patronymics_dict)
 
     # Генерация датасета на 10 записей
     dataset = generate_dataset(
@@ -351,7 +382,6 @@ if __name__ == "__main__":
         specialists_list,
         symptoms_dict,
         analyses_with_prices_dict,
-        seasonality_index,
         personal_data
     )
 
