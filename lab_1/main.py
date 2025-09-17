@@ -311,6 +311,8 @@ def generate_one_card(
         "Карта_оплаты": payment_card
     }
 
+def create_personal_data(n=1000, names_dict=None, surnames_dict=None, patronymics_dict=None):
+    return generate_personal_data(n, names_dict, surnames_dict, patronymics_dict)
 
 def generate_one_output(card: Dict) -> List[str]:
     # Форматируем словарь в список по нужному порядку
@@ -326,7 +328,6 @@ def generate_one_output(card: Dict) -> List[str]:
         str(int(card['Стоимость'])),
         card["Карта_оплаты"]
     ]
-
 
 def generate_dataset(
     n: int,
@@ -372,7 +373,6 @@ def write_into_csv_file(data: List[List[str]], path: str = 'output/medical_datas
         if not file_exists:
             writer.writerow(headers)
         writer.writerows(data)
-
 
 if __name__ == "__main__":
     # Пример загрузки данных
@@ -433,7 +433,7 @@ if __name__ == "__main__":
     }
         
     # Генерация персональных данных (пример)
-    personal_data = generate_personal_data(1000, names_dict, surnames_dict, patronymics_dict)
+    personal_data = create_personal_data(1000, names_dict, surnames_dict, patronymics_dict)
 
     # Генерация датасета на 10 записей
     dataset = generate_dataset(
