@@ -1,11 +1,12 @@
 import tkinter as tk
-from tkinter import messagebox
-from tkinter.ttk import Combobox
+from tkinter import messagebox, ttk
+from tkinter.ttk import Combobox, Progressbar
 import os
 from main import (
     bank_names, painment_system_names, create_personal_data, generate_dataset, write_into_csv_file,
     read_from_csv_file, parse_personal_data_file
 )
+import threading
 
 # ===================== Загрузка и подготовка данных =====================
 # Загрузка медицинских специальностей
@@ -72,30 +73,58 @@ def on_generate():
         messagebox.showerror("Ошибка", "Сумма весов не может быть нулевой")
         return
 
-    # Генерация персональных данных
-    personal_data = create_personal_data(amount, names_dict, surnames_dict, patronymics_dict)
+    # Блокируем кнопку во время генерации
+    btn_generate.config(state='disabled')
+    progress_bar['value'] = 0
+    progress_label.config(text="0%")
+    window.update()
 
-    # Генерация датасета
-    dataset = generate_dataset(
-        amount,
-        specialists_list,
-        symptoms_dict,
-        analyses_with_prices_dict,
-        personal_data,
-        bank_weights=bank_weights,
-        pay_system_weights=pay_system_weights
-    )
+    # Запускаем генерацию в отдельном потоке
+    thread = threading.Thread(target=generate_data_thread, args=(amount, bank_weights, pay_system_weights))
+    thread.daemon = True
+    thread.start()
 
-    # Запись в CSV
-    output_path = 'output/medical_dataset.csv'
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    write_into_csv_file(dataset, output_path)
-    messagebox.showinfo("Готово", f"Датасет из {amount} записей сохранен в {output_path}")
+def generate_data_thread(amount, bank_weights, pay_system_weights):
+    try:
+        # Генерация персональных данных (25%)
+        personal_data = create_personal_data(amount, names_dict, surnames_dict, patronymics_dict)
+        update_progress(25, "Генерация персональных данных...")
+
+        # Генерация датасета (50%)
+        dataset = generate_dataset(
+            amount,
+            specialists_list,
+            symptoms_dict,
+            analyses_with_prices_dict,
+            personal_data,
+            bank_weights=bank_weights,
+            pay_system_weights=pay_system_weights
+        )
+        update_progress(75, "Генерация медицинских данных...")
+
+        # Запись в CSV (25%)
+        output_path = 'output/medical_dataset.csv'
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        write_into_csv_file(dataset, output_path)
+        update_progress(100, "Завершено!")
+
+        # Показываем сообщение об успехе
+        window.after(0, lambda: messagebox.showinfo("Готово", f"Датасет из {amount} записей сохранен в {output_path}"))
+        
+    except Exception as e:
+        window.after(0, lambda: messagebox.showerror("Ошибка", f"Произошла ошибка: {str(e)}"))
+    finally:
+        window.after(0, lambda: btn_generate.config(state='normal'))
+
+def update_progress(value, text):
+    window.after(0, lambda: progress_bar.config(value=value))
+    window.after(0, lambda: progress_label.config(text=f"{int(value)}% - {text}"))
+    window.after(0, window.update)
 
 # ===================== Создание окна =====================
 window = tk.Tk()
 window.title("Генератор медицинских данных")
-window.geometry('700x500')
+window.geometry('700x550')
 window.configure(bg="#2b2b2b")  # Тёмный фон
 
 # Стили для тёмной темы
@@ -166,7 +195,18 @@ combo_ps1.set("3")
 combo_ps2.set("5")
 combo_ps3.set("2")
 
+# Прогрессбар
+progress_frame = tk.Frame(window, bg=label_bg)
+progress_frame.pack(pady=10, fill='x', padx=20)
+
+progress_label = tk.Label(progress_frame, text="0% - Ожидание", bg=label_bg, fg=label_fg)
+progress_label.pack()
+
+progress_bar = Progressbar(progress_frame, orient='horizontal', length=600, mode='determinate')
+progress_bar.pack(pady=5, fill='x')
+
 # Кнопка генерации
-tk.Button(window, text="Сгенерировать CSV", command=on_generate, bg="#3c3f41", fg="#ffffff").pack(pady=20)
+btn_generate = tk.Button(window, text="Сгенерировать CSV", command=on_generate, bg="#3c3f41", fg="#ffffff")
+btn_generate.pack(pady=20)
 
 window.mainloop()
