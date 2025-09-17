@@ -25,6 +25,35 @@ import random
 import faker
 from typing import List
 
+def calculate_snils_control_number(digits: list) -> str:
+    """
+    Вычисляет контрольное число для СНИЛС по официальному алгоритму.
+    digits: список из 9 цифр основной части
+    returns: контрольное число в формате строки из 2 цифр
+    """
+    if len(digits) != 9:
+        raise ValueError("Должно быть 9 цифр для расчета контрольного числа СНИЛС")
+    
+    # Умножаем каждую цифру на ее вес (9 для первой, 8 для второй, ..., 1 для девятой)
+    total = 0
+    for i in range(9):
+        weight = 9 - i
+        total += digits[i] * weight
+    
+    # Вычисляем контрольное число по правилам
+    if total < 100:
+        control_number = total
+    elif total == 100 or total == 101:
+        control_number = 0
+    else:
+        remainder = total % 101
+        if remainder == 100:
+            control_number = 0
+        else:
+            control_number = remainder
+    
+    return f"{control_number:02d}"
+
 def generate_personal_data(amount=1000) -> List[List[str]]:
     """
     Использует faker для генерации ФИО, паспортных данных и СНИЛС на русском языке.
@@ -61,10 +90,16 @@ def generate_personal_data(amount=1000) -> List[List[str]]:
         
         passport = f"{passport_series} {passport_number}"
         
-        # СНИЛС - формат XXXXXXXXX XX
-        snils_numbers = [random.randint(0, 9) for _ in range(9)]
-        snils_control = [random.randint(0, 9) for _ in range(2)]
-        snils = f"{snils_numbers[0]}{snils_numbers[1]}{snils_numbers[2]}{snils_numbers[3]}{snils_numbers[4]}{snils_numbers[5]}{snils_numbers[6]}{snils_numbers[7]}{snils_numbers[8]} {snils_control[0]}{snils_control[1]}"
+        # Правильная генерация СНИЛС
+        # 1. Генерируем 9 случайных цифр основной части
+        main_digits = [random.randint(0, 9) for _ in range(9)]
+        
+        # 2. Вычисляем контрольное число по официальному алгоритму
+        control_number = calculate_snils_control_number(main_digits)
+        
+        # 3. Форматируем СНИЛС: XXXXXXXXX XX (9 цифр + пробел + 2 контрольные цифры)
+        snils_main = ''.join(str(digit) for digit in main_digits)
+        snils = f"{snils_main} {control_number}"
         
         personal_data.append([fio, passport, snils])
     
