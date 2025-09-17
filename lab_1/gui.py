@@ -92,27 +92,48 @@ def on_generate():
     write_into_csv_file(dataset, output_path)
     messagebox.showinfo("Готово", f"Датасет из {amount} записей сохранен в {output_path}")
 
-# Создаем окно
+# ===================== Создание окна =====================
 window = tk.Tk()
 window.title("Генератор медицинских данных")
-window.geometry('650x400')
+window.geometry('700x500')
+window.configure(bg="#2b2b2b")  # Тёмный фон
 
-tk.Label(window, text="Количество строк:").pack()
-txt_amount = tk.Entry(window)
+# Стили для тёмной темы
+label_bg = "#2b2b2b"
+label_fg = "#ffffff"
+entry_bg = "#3c3f41"
+entry_fg = "#ffffff"
+
+# Количество строк
+tk.Label(window, text="Количество строк:", bg=label_bg, fg=label_fg).pack(pady=5)
+txt_amount = tk.Entry(window, bg=entry_bg, fg=entry_fg, insertbackground='white')
 txt_amount.insert(0, "1000")
-txt_amount.pack()
+txt_amount.pack(pady=5)
 
 # Веса банков
-tk.Label(window, text="Веса банков (%):").pack()
-frame_banks = tk.Frame(window)
-frame_banks.pack(pady=5)
-combo_bank1 = Combobox(frame_banks, values=list(range(0,101)), width=5)
-combo_bank2 = Combobox(frame_banks, values=list(range(0,101)), width=5)
-combo_bank3 = Combobox(frame_banks, values=list(range(0,101)), width=5)
-combo_bank4 = Combobox(frame_banks, values=list(range(0,101)), width=5)
-combo_bank5 = Combobox(frame_banks, values=list(range(0,101)), width=5)
+tk.Label(window, text="Веса банков (%):", bg=label_bg, fg=label_fg).pack(pady=(10, 0))
+
+# Фрейм для названий банков
+frame_bank_labels = tk.Frame(window, bg=label_bg)
+frame_bank_labels.pack()
+
+bank_labels = ["GAZPROMBANK", "MTS BANK", "SBERBANK", "TINKOFF", "VTB BANK"]
+for lbl in bank_labels:
+    tk.Label(frame_bank_labels, text=lbl, bg=label_bg, fg=label_fg, width=12).pack(side='left', padx=5)
+
+# Фрейм для комбобоксов банков
+frame_bank_combos = tk.Frame(window, bg=label_bg)
+frame_bank_combos.pack(pady=(0, 10))
+
+combo_bank1 = Combobox(frame_bank_combos, values=list(range(0,101)), width=10)
+combo_bank2 = Combobox(frame_bank_combos, values=list(range(0,101)), width=10)
+combo_bank3 = Combobox(frame_bank_combos, values=list(range(0,101)), width=10)
+combo_bank4 = Combobox(frame_bank_combos, values=list(range(0,101)), width=10)
+combo_bank5 = Combobox(frame_bank_combos, values=list(range(0,101)), width=10)
+
 for c in [combo_bank1, combo_bank2, combo_bank3, combo_bank4, combo_bank5]:
     c.pack(side='left', padx=5)
+
 combo_bank1.set("5")
 combo_bank2.set("1")
 combo_bank3.set("1")
@@ -120,19 +141,32 @@ combo_bank4.set("2")
 combo_bank5.set("4")
 
 # Веса платёжных систем
-tk.Label(window, text="Веса платёжных систем (%):").pack()
-frame_ps = tk.Frame(window)
-frame_ps.pack(pady=5)
-combo_ps1 = Combobox(frame_ps, values=list(range(0,101)), width=5)
-combo_ps2 = Combobox(frame_ps, values=list(range(0,101)), width=5)
-combo_ps3 = Combobox(frame_ps, values=list(range(0,101)), width=5)
+tk.Label(window, text="Веса платёжных систем (%):", bg=label_bg, fg=label_fg).pack(pady=(10, 0))
+
+# Фрейм для названий платёжных систем
+frame_ps_labels = tk.Frame(window, bg=label_bg)
+frame_ps_labels.pack()
+
+ps_labels = ["MIR", "VISA", "MASTERCARD"]
+for lbl in ps_labels:
+    tk.Label(frame_ps_labels, text=lbl, bg=label_bg, fg=label_fg, width=12).pack(side='left', padx=5)
+
+# Фрейм для комбобоксов платёжных систем
+frame_ps_combos = tk.Frame(window, bg=label_bg)
+frame_ps_combos.pack(pady=(0, 20))
+
+combo_ps1 = Combobox(frame_ps_combos, values=list(range(0,101)), width=10)
+combo_ps2 = Combobox(frame_ps_combos, values=list(range(0,101)), width=10)
+combo_ps3 = Combobox(frame_ps_combos, values=list(range(0,101)), width=10)
+
 for c in [combo_ps1, combo_ps2, combo_ps3]:
     c.pack(side='left', padx=5)
+
 combo_ps1.set("3")
 combo_ps2.set("5")
 combo_ps3.set("2")
 
 # Кнопка генерации
-tk.Button(window, text="Сгенерировать CSV", command=on_generate).pack(pady=20)
+tk.Button(window, text="Сгенерировать CSV", command=on_generate, bg="#3c3f41", fg="#ffffff").pack(pady=20)
 
 window.mainloop()
